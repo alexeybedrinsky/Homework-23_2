@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 
 class Product(models.Model):
@@ -31,12 +32,19 @@ class Product(models.Model):
         max_length=50, verbose_name="Стоимость", help_text="Цена за покупку"
     )
     created_at = models.DateField(
-        blank=True, verbose_name="Дата создания", help_text="Дата занесения в БД"
+        default=timezone.now,
+        verbose_name="Дата создания",
+        help_text="Дата занесения в БД"
     )
     updated_at = models.DateField(
-        blank=True,
-        verbose_name="Дата последнего изменения",
-        help_text="Дата последнего изменения в БД",
+        default=timezone.now,
+        verbose_name="Дата обновления",
+        help_text="Дата последнего обновления"
+    )
+    views_counter = models.PositiveIntegerField(
+        verbose_name="Счетчик просмотров",
+        help_text="Количество просмотров",
+        default=0
     )
 
     class Meta:

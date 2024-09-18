@@ -1,11 +1,14 @@
 from django.urls import path
 from products.apps import ProductsConfig
 
-from products.views import products_list, products_detail
+from products.views import ProductListView, ProductDetailView, ProductCreateView, ProductUpdateView, ProductDeleteView
 
 app_name = ProductsConfig.name
 
 urlpatterns = [
-    path('', products_list, name='products_list'),
-    path('products/<int:pk>/', products_detail, name='products_detail')
+    path('', ProductListView.as_view(), name='products_list'),
+    path('products/<int:pk>/', ProductDetailView.as_view(), name='products_detail'),
+    path('products/create', ProductCreateView.as_view(), name='products_create'),
+    path('products/<int:pk>/update/', ProductUpdateView.as_view(), name='products_update'),
+    path('products/<int:pk>/delete/', ProductDeleteView.as_view(), name='products_delete')
 ]
