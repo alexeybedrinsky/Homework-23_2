@@ -31,7 +31,7 @@ class Command(BaseCommand):
             model_name = entry['model']
             fields = entry['fields']
 
-            if model_name == 'Products.category':
+            if model_name == 'catalog.category':
                 category_for_create.append(
                     Category(
                         id=entry['pk'],
@@ -48,7 +48,7 @@ class Command(BaseCommand):
             model_name = entry['model']
             fields = entry['fields']
 
-            if model_name == 'Products.product':
+            if model_name == 'catalog.product':
                 category = Category.objects.get(pk=fields['category'])
                 product_for_create.append(
                     Product(
