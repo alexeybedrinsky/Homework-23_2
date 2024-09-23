@@ -11,12 +11,12 @@ class Category(models.Model):
         verbose_name_plural = "Категории"
         ordering = ["name"]
 
-    @property
     def __str__(self):
         return self.name
 
 
 class Product(models.Model):
+    objects = None
     name = models.CharField(
         max_length=50, verbose_name="Наименование", help_text="Введите наименование"
     )

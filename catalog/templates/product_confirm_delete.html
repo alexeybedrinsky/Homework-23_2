@@ -1,4 +1,4 @@
-{% extends 'includes/base.html' %}
+{% extends 'base.html' %}
 {% block content %}
 <div class="container">
     <div class="row">
@@ -12,7 +12,7 @@
                     <button type="submit" class="btn btn-primary">
                         Удалить
                     </button>
-                    <a class="btn btn-primary" href="{% url 'catalog:products_list' %}" role="button">Отставить</a>
+                    <a class="btn btn-primary" href="{% url 'catalog:catalog_list' %}" role="button">Отставить</a>
                 </div>
             </form>
         </div>
