@@ -1,20 +1,23 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="container">
-    <div class="row">
-        <div class="col-6">
-            <form class="row" method="post" enctype="multipart/form-data">
-                <div class="card">
-                    <p class="card-text">Точно удалить?{{ object.name }}</p>
-                    <div class="card-body">
-                        {% csrf_token %}
-                    </div>
-                    <button type="submit" class="btn btn-primary">
-                        Удалить
-                    </button>
-                    <a class="btn btn-primary" href="{% url 'catalog:catalog_list' %}" role="button">Отставить</a>
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Подтверждение удаления</h4>
                 </div>
-            </form>
+                <div class="card-body">
+                    <p class="card-text">Вы уверены, что хотите удалить продукт "{{ object.name }}"?</p>
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <button type="submit" class="btn btn-danger">Удалить</button>
+                            <a class="btn btn-secondary" href="{% url 'catalog:catalog_detail' object.pk %}" role="button">Отмена</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
