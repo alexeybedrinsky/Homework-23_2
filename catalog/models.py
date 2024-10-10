@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth import get_user_model
 
 
 class Category(models.Model):
@@ -66,6 +67,15 @@ class Product(models.Model):
         help_text="Дата производства продукта",
         null=True
     )
+    owner = models.ForeignKey(
+        get_user_model(),
+        on_delete=models.CASCADE,
+        related_name='products',
+        verbose_name="Владелец",
+        help_text="Пользователь, создавший продукт",
+        null=True,
+        blank=True
+    )
 
     class Meta:
         verbose_name = "Продукт"
@@ -74,6 +84,7 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class Version(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='versions', verbose_name="Продукт")
