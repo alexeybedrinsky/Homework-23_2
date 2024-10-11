@@ -1,6 +1,7 @@
 import random
 import string
 import logging
+import six
 from django.contrib.auth import login
 from django.shortcuts import render, redirect
 from django.views.generic.edit import CreateView, FormView, UpdateView
@@ -11,12 +12,12 @@ from .forms import CustomUserCreationForm, UserProfileForm
 from .models import CustomUser
 from django import forms
 from django.contrib.auth.hashers import make_password
-from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.contrib.auth.views import LoginView
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
 
 
 class CustomLoginView(LoginView):
@@ -47,7 +48,8 @@ class RegisterView(CreateView):
         logger.info(f"New user registered: {user.email}")
 
         # Генерация токена для верификации email
-        token = default_token_generator.make_token(user)
+        token = account_activation_token.make_token(user)  #token = default_token_generator.make_token(user)
+        logger.debug(f"Generated token: {token}")
         uid = urlsafe_base64_encode(force_bytes(user.pk))
         verification_url = reverse_lazy('verify_email', kwargs={'uidb64': uid, 'token': token})
 
@@ -69,6 +71,17 @@ class RegisterView(CreateView):
         messages.success(self.request,
                          'Регистрация успешна. Пожалуйста, проверьте вашу почту для подтверждения аккаунта.')
         return super().form_valid(form)
+
+
+class AccountActivationTokenGenerator(PasswordResetTokenGenerator):
+    def _make_hash_value(self, user, timestamp):
+        return (
+            six.text_type(user.pk) + six.text_type(timestamp) +
+            six.text_type(user.is_active)
+        )
+
+
+account_activation_token = AccountActivationTokenGenerator()
 
 
 class PasswordResetForm(forms.Form):
@@ -104,27 +117,43 @@ logger = logging.getLogger(__name__)
 
 
 def verify_email(request, uidb64, token):
+    global uid
     logger.info(f"Attempting to verify email with uidb64: {uidb64} and token: {token}")
     try:
         uid = force_str(urlsafe_base64_decode(uidb64))
+        logger.info(f"Decoded uid: {uid}")
         user = CustomUser.objects.get(pk=uid)
         logger.info(f"User found: {user.email}")
-    except (TypeError, ValueError, OverflowError, CustomUser.DoesNotExist):
+
+        expected_token = account_activation_token.make_token(user)
+        logger.debug(f"Expected token: {expected_token}, Received token: {token}")
+
+        if not user.is_active and account_activation_token.check_token(user, token):
+            logger.info(f"Token is valid for user: {user.email}")
+            user.is_active = True
+            user.save()
+            login(request, user)
+            logger.info(f"User {user.email} successfully verified and logged in")
+            messages.success(request, 'Ваш email успешно подтвержден. Вы вошли в систему.')
+            return redirect('home')
+        else:
+            if user.is_active:
+                logger.warning(f"User {user.email} is already active")
+                messages.warning(request, 'Ваш аккаунт уже активирован.')
+            else:
+                logger.warning(f"Invalid token for user: {user.email}")
+                messages.error(request, 'Ссылка для подтверждения недействительна.')
+            return render(request, 'users/activation_invalid.html')
+    except (TypeError, ValueError, OverflowError) as e:
+        logger.error(f"Error decoding uidb64: {str(e)}")
         user = None
-        logger.error(f"User not found for uidb64: {uidb64}")
+    except CustomUser.DoesNotExist:
+        logger.error(f"User not found for uid: {uid}")
+        user = None
 
-    if user is not None and default_token_generator.check_token(user, token):
-        user.is_active = True
-        user.save()
-        login(request, user)
-        logger.info(f"User {user.email} successfully verified and logged in")
-        messages.success(request, 'Ваш email успешно подтвержден. Вы вошли в систему.')
-        return redirect('home')
-    else:
-        logger.warning(f"Invalid verification link for uidb64: {uidb64}")
-        messages.error(request, 'Ссылка для подтверждения недействительна.')
-        return render(request, 'users/activation_invalid.html')
-
+    logger.warning(f"Invalid verification link for uidb64: {uidb64}")
+    messages.error(request, 'Ссылка для подтверждения недействительна.')
+    return render(request, 'users/activation_invalid.html')
 
 class UserProfileUpdateView(LoginRequiredMixin, UpdateView):
     model = CustomUser
