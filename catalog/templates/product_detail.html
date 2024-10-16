@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load my_tags %}
+
 {% block content %}
 <div class="container py-5">
     <div class="row">
@@ -12,8 +13,14 @@
             <p>Просмотров: {{ object.views_counter }}</p>
             <div class="mt-4">
                 <a class="btn btn-primary" href="{% url 'catalog:catalog_list' %}" role="button">Назад к списку</a>
-                <a class="btn btn-secondary" href="{% url 'catalog:catalog_update' object.pk %}" role="button">Редактировать</a>
-                <a class="btn btn-danger" href="{% url 'catalog:catalog_delete' object.pk %}" role="button">Удалить</a>
+                <!-- Начало изменений -->
+                {% if user == object.owner or perms.catalog.change_product %}
+                    <a class="btn btn-secondary" href="{% url 'catalog:catalog_update' object.pk %}" role="button">Редактировать</a>
+                {% endif %}
+                {% if user == object.owner or perms.catalog.delete_product %}
+                    <a class="btn btn-danger" href="{% url 'catalog:catalog_delete' object.pk %}" role="button">Удалить</a>
+                {% endif %}
+                <!-- Конец изменений -->
             </div>
         </div>
     </div>
@@ -21,7 +28,11 @@
     <div class="row mt-5">
         <div class="col-12">
             <h2>Версии продукта</h2>
-            <a href="{% url 'catalog:version_create' %}?product={{ object.pk }}" class="btn btn-success mb-3">Добавить версию</a>
+            <!-- Начало изменений -->
+            {% if user == object.owner or perms.catalog.add_version %}
+                <a href="{% url 'catalog:version_create' %}?product={{ object.pk }}" class="btn btn-success mb-3">Добавить версию</a>
+            {% endif %}
+            <!-- Конец изменений -->
             <ul class="list-group">
                 {% for version in object.versions.all %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -30,8 +41,12 @@
                             <span class="badge bg-primary rounded-pill">Текущая</span>
                         {% endif %}
                         <div>
-                            <a href="{% url 'catalog:version_update' version.pk %}" class="btn btn-sm btn-outline-secondary">Редактировать</a>
-                            <a href="{% url 'catalog:version_delete' version.pk %}" class="btn btn-sm btn-outline-danger">Удалить</a>
+                            {% if user == object.owner or perms.catalog.change_version %}
+                                <a href="{% url 'catalog:version_update' version.pk %}" class="btn btn-sm btn-outline-secondary">Редактировать</a>
+                            {% endif %}
+                            {% if user == object.owner or perms.catalog.delete_version %}
+                                <a href="{% url 'catalog:version_delete' version.pk %}" class="btn btn-sm btn-outline-danger">Удалить</a>
+                            {% endif %}
                         </div>
                     </li>
                 {% empty %}

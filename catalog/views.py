@@ -1,8 +1,8 @@
 from django.contrib import messages
 from django.urls import reverse_lazy, reverse
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import get_object_or_404, redirect
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from .models import Product, Version
 from .forms import ProductForm, VersionForm
 
@@ -42,13 +42,21 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
-class ProductUpdateView(LoginRequiredMixin, UpdateView):
+class ProductUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Product
     form_class = ProductForm
     template_name = 'product_form.html'
 
+    def test_func(self):
+        product = self.get_object()
+        return self.request.user == product.owner or self.request.user.has_perm('catalog.change_product')
+
     def get_success_url(self):
         return reverse('catalog:catalog_detail', args=[self.kwargs.get('pk')])
+
+    def handle_no_permission(self):
+        messages.error(self.request, "У вас нет прав для редактирования этого продукта.")
+        return redirect('catalog:catalog_detail', pk=self.kwargs.get('pk'))
 
 
 class ProductDeleteView(LoginRequiredMixin, DeleteView):

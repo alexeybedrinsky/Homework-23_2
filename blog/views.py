@@ -1,8 +1,10 @@
 from django.core.mail import send_mail
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy, reverse
+from django.contrib.auth.mixins import UserPassesTestMixin
 from .models import BlogPost
 from django.utils.text import slugify
+from django.conf import settings
 
 
 class BlogPostListView(ListView):
@@ -36,10 +38,13 @@ class BlogPostDetailView(DetailView):
         return obj
 
 
-class BlogPostCreateView(CreateView):
+class BlogPostCreateView(UserPassesTestMixin, CreateView):
     model = BlogPost
     template_name = 'blog/blogpost_form.html'
     fields = ['title', 'content', 'preview', 'is_published']
+
+    def test_func(self):
+        return self.request.user.groups.filter(name='Content Managers').exists()
 
     def form_valid(self, form):
         if form.is_valid():
@@ -49,16 +54,22 @@ class BlogPostCreateView(CreateView):
         return super().form_valid(form)
 
 
-class BlogPostUpdateView(UpdateView):
+class BlogPostUpdateView(UserPassesTestMixin, UpdateView):
     model = BlogPost
     template_name = 'blog/blogpost_form.html'
     fields = ['title', 'content', 'preview', 'is_published']
+
+    def test_func(self):
+        return self.request.user.groups.filter(name='Content Managers').exists()
 
     def get_success_url(self):
         return reverse('blog:post_detail', args=[self.object.slug])
 
 
-class BlogPostDeleteView(DeleteView):
+class BlogPostDeleteView(UserPassesTestMixin, DeleteView):
     model = BlogPost
     template_name = 'blog/blogpost_confirm_delete.html'
     success_url = reverse_lazy('blog:post_list')
+
+    def test_func(self):
+        return self.request.user.groups.filter(name='Content Managers').exists()

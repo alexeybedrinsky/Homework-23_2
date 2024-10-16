@@ -76,17 +76,33 @@ class Product(models.Model):
         null=True,
         blank=True
     )
+    PUBLICATION_STATUS_CHOICES = [
+        ('draft', 'Черновик'),
+        ('published', 'Опубликовано'),
+    ]
+    publication_status = models.CharField(
+        max_length=10,
+        choices=PUBLICATION_STATUS_CHOICES,
+        default='draft',
+        verbose_name='Статус публикации'
+    )
 
     class Meta:
         verbose_name = "Продукт"
         verbose_name_plural = "Продукты"
         ordering = ["name", "category"]
+        permissions = [
+            ("can_unpublish_product", "Can unpublish product"),
+            ("can_change_product_description", "Can change product description"),
+            ("can_change_product_category", "Can change product category"),
+        ]
 
     def __str__(self):
         return self.name
 
 
 class Version(models.Model):
+    objects = None
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='versions', verbose_name="Продукт")
     version_number = models.CharField(max_length=50, verbose_name="Номер версии")
     version_name = models.CharField(max_length=100, verbose_name="Название версии")
@@ -102,6 +118,5 @@ class Version(models.Model):
 
     def save(self, *args, **kwargs):
         if self.is_current:
-            # Если эта версия отмечена как текущая, сбросим флаг у других версий этого продукта
             Version.objects.filter(product=self.product).update(is_current=False)
         super().save(*args, **kwargs)

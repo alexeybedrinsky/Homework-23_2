@@ -155,6 +155,7 @@ def verify_email(request, uidb64, token):
     messages.error(request, 'Ссылка для подтверждения недействительна.')
     return render(request, 'users/activation_invalid.html')
 
+
 class UserProfileUpdateView(LoginRequiredMixin, UpdateView):
     model = CustomUser
     form_class = UserProfileForm
