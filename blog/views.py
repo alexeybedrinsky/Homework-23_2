@@ -5,6 +5,9 @@ from django.contrib.auth.mixins import UserPassesTestMixin
 from .models import BlogPost
 from django.utils.text import slugify
 from django.conf import settings
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
+
 
 
 class BlogPostListView(ListView):
@@ -38,6 +41,7 @@ class BlogPostDetailView(DetailView):
         return obj
 
 
+@method_decorator(never_cache, name='dispatch')
 class BlogPostCreateView(UserPassesTestMixin, CreateView):
     model = BlogPost
     template_name = 'blog/blogpost_form.html'

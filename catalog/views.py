@@ -1,23 +1,49 @@
+import json
+
 from django.contrib import messages
-from django.urls import reverse_lazy, reverse
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
-from django.shortcuts import get_object_or_404, redirect
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from .models import Product, Version
+from django.core.serializers.json import DjangoJSONEncoder
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import reverse_lazy, reverse
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.cache import never_cache
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+
 from .forms import ProductForm, VersionForm
+from .models import Product, Version
+from .services import get_cached_categories
+from django.template.loader import get_template
 
 
-class ProductListView(LoginRequiredMixin, ListView):
+class ProductListView(ListView):
     model = Product
     template_name = 'product_list.html'
+    context_object_name = 'object_list'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['categories'] = get_cached_categories()
         for product in context['object_list']:
             product.active_version = product.versions.filter(is_current=True).first()
         return context
 
 
+class CategoryListView(LoginRequiredMixin, ListView):
+    template_name = 'category_list.html'
+    context_object_name = 'categories'
+
+    def get_queryset(self):
+        return get_cached_categories()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['categories'] = json.dumps(list(self.get_queryset().values()), cls=DjangoJSONEncoder)
+        return context
+
+
+@method_decorator(cache_page(60 * 15), name='dispatch')  # кэшируем на 15 минут
 class ProductDetailView(LoginRequiredMixin, DetailView):
     model = Product
     template_name = 'product_detail.html'
@@ -31,6 +57,7 @@ class ProductDetailView(LoginRequiredMixin, DetailView):
         return obj
 
 
+@method_decorator(never_cache, name='dispatch')
 class ProductCreateView(LoginRequiredMixin, CreateView):
     model = Product
     form_class = ProductForm
@@ -39,7 +66,9 @@ class ProductCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.owner = self.request.user
-        return super().form_valid(form)
+        response = super().form_valid(form)
+        messages.success(self.request, 'Продукт успешно создан!')
+        return response
 
 
 class ProductUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
@@ -107,3 +136,7 @@ class VersionDeleteView(LoginRequiredMixin, DeleteView):
 
     def get_success_url(self):
         return reverse('catalog:catalog_detail', kwargs={'pk': self.object.product.pk})
+
+
+def test_cache(request):
+    return HttpResponse("Test cache view")
